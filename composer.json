@@ -1,0 +1,13 @@
+{
+	"name"       : "johnbillion/wp-site-icon",
+	"description": "An admin UI for setting a site icon used for favicons and touch icons.",
+	"homepage"   : "https://github.com/johnbillion/wp-site-icon",
+	"type"       : "wordpress-plugin",
+	"license"    : "GPL-2.0+",
+	"require": {
+		"composer/installers": "~1.0"
+	},
+	"require-dev" : {
+		"phpunit/phpunit": ">=3.7@stable"
+    }
+}
