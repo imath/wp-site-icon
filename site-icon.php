@@ -151,7 +151,7 @@ class WP_Site_Icon {
 	 *
 	 * NB: to work, it requires WordPress core "Cropper" to be adapted so that it's possible
 	 * to set a different ajax action than 'custom-header-crop'
-	 * @see  core ticket
+	 * @see  core ticket https://core.trac.wordpress.org/ticket/32765
 	 *
 	 * Each icon size will be added as metadatas of the newly created attachment
 	 * @see WP_Site_Icon->insert_attachment
