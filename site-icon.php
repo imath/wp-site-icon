@@ -60,13 +60,13 @@ class WP_Site_Icon {
 		$wp_customize->add_setting( 'site_icon', array(
 			'type'       => 'option',
 			'default'    => '',
-            'capability' => 'manage_options'
+			'capability' => 'manage_options'
 		) );
 
 		$wp_customize->add_setting( 'site_icon_data', array(
 			'type'       => 'option',
 			'default'    => '',
-            'capability'  => 'manage_options',
+			'capability'  => 'manage_options',
 		) );
 
 		$wp_customize->add_control( new WP_Customize_Site_Icon_Control( $wp_customize ) );
