@@ -12,7 +12,7 @@
 			this.btnRemove = $('#customize-control-site_icon .actions .remove');
 			this.btnNew    = $('#customize-control-site_icon .actions .new');
 
-			_.bindAll(this, 'openMedia', 'removeImage');
+			_.bindAll( this, 'openMedia', 'removeImage' );
 
 			this.btnNew.on( 'click', this.openMedia );
 			this.btnRemove.on( 'click', this.removeImage );
@@ -81,6 +81,15 @@
 
 			controller.set( 'canSkipCrop', false );
 
+			/**
+			 * The Ajax action
+			 * @see  WP_Site_Icon->ajax_icon_crop
+			 *
+			 * This requires the wp-includes/js/media-view.js to be edited
+			 * @see core ticket:
+			 */
+			controller.set( 'cropAction', 'site-icon-crop' );
+
 			return {
 				handles     : true,
 				keys        : true,
@@ -104,31 +113,31 @@
 		 *
 		 * @param {event} event
 		 */
-		openMedia: function(event) {
+		openMedia: function( event ) {
 			var l10n = _wpMediaViewsL10n;
 
 			event.preventDefault();
 
-			this.frame = wp.media({
+			this.frame = wp.media( {
 				button: {
 					text: l10n.selectAndCrop,
 					close: false
 				},
 				states: [
-					new wp.media.controller.Library({
+					new wp.media.controller.Library( {
 						title:     l10n.chooseImage,
-						library:   wp.media.query({ type: 'image' }),
+						library:   wp.media.query( { type: 'image' } ),
 						multiple:  false,
 						date:      false,
 						priority:  20,
 						suggestedWidth: _wpCustomizeSiteIcon.data.width,
 						suggestedHeight: _wpCustomizeSiteIcon.data.height
-					}),
-					new wp.media.controller.Cropper({
+					} ),
+					new wp.media.controller.Cropper( {
 						imgSelectOptions: this.calculateImageSelectOptions
-					})
+					} )
 				]
-			});
+			} );
 
 			this.frame.on('select', this.onSelect, this);
 			this.frame.on('cropped', this.onCropped, this);
@@ -141,7 +150,7 @@
 		 * switch to the cropper state.
 		 */
 		onSelect: function() {
-			this.frame.setState('cropper');
+			this.frame.setState( 'cropper' );
 		},
 
 		/**
@@ -149,7 +158,7 @@
 		 *
 		 * @param {object} croppedImage Cropped attachment data.
 		 */
-		onCropped: function(croppedImage) {
+		onCropped: function( croppedImage ) {
 			var url = croppedImage.post_content,
 				attachmentId = croppedImage.attachment_id,
 				w = croppedImage.width,
@@ -159,7 +168,7 @@
 
 		/**
 		 * Creates a new wp.customize.SiteIconTool.ImageModel from provided
-		 * header image data and inserts it into the user-uploaded headers
+		 * site icon image data and inserts it into the user-uploaded icons
 		 * collection.
 		 *
 		 * @param {String} url
@@ -167,31 +176,32 @@
 		 * @param {Number} width
 		 * @param {Number} height
 		 */
-		setImageFromURL: function(url, attachmentId, width, height) {
+		setImageFromURL: function( url, attachmentId, width, height ) {
 			var choice, data = {};
 
 			data.url = url;
 			data.thumbnail_url = url;
 			data.timestamp = _.now();
 
-			if (attachmentId) {
+			if ( attachmentId ) {
 				data.attachment_id = attachmentId;
 			}
 
-			if (width) {
+			if ( width ) {
 				data.width = width;
 			}
 
-			if (height) {
+			if ( height ) {
 				data.height = height;
 			}
 
-			choice = new api.SiteIconTool.ImageModel({
+			choice = new api.SiteIconTool.ImageModel( {
 				icon: data,
 				choice: url.split('/').pop()
-			});
-			api.SiteIconTool.UploadsList.add(choice);
-			api.SiteIconTool.currentIcon.set(choice.toJSON());
+			} );
+
+			api.SiteIconTool.UploadsList.add( choice );
+			api.SiteIconTool.currentIcon.set( choice.toJSON() );
 			choice.save();
 			choice.importImage();
 		},
@@ -201,8 +211,8 @@
 		 * the currently selected one.
 		 */
 		removeImage: function() {
-			api.SiteIconTool.currentIcon.trigger('hide');
-			api.SiteIconTool.CombinedList.trigger('control:removeImage');
+			api.SiteIconTool.currentIcon.trigger( 'hide' );
+			api.SiteIconTool.CombinedList.trigger( 'control:removeImage' );
 		}
 
 	});
@@ -210,11 +220,11 @@
 	$( function() {
 		api.settings = window._wpCustomizeSettings;
 
-		var control = new api.SiteIconControl( 'site_icon', {
-			params:    api.settings.controls.site_icon_data,
+		var control = new api.SiteIconControl( 'site_icon_data', {
+			params:    api.settings.controls.site_icon,
 			previewer: api.previewer
 		} );
-		api.control.add( 'site_icon', control );
+		api.control.add( 'site_icon_data', control );
 	});
 
 })( wp, jQuery );

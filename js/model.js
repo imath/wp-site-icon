@@ -11,7 +11,7 @@
 	 * @constructor
 	 * @augments Backbone.Model
 	 */
-	api.SiteIconTool.ImageModel = Backbone.Model.extend({
+	api.SiteIconTool.ImageModel = Backbone.Model.extend( {
 		defaults: function() {
 			return {
 				icon: {
@@ -26,7 +26,7 @@
 		},
 
 		initialize: function() {
-			this.on('hide', this.hide, this);
+			this.on( 'hide', this.hide, this );
 		},
 
 		hide: function() {
@@ -35,18 +35,51 @@
 			api('site_icon_data').set('remove-icon');
 		},
 
-		save: function() {
-			if (this.get('icon').defaultName) {
-				api('site_icon').set(this.get('icon').url);
-				api('site_icon_data').set(this.get('icon').defaultName);
-			} else {
-				api('site_icon').set(this.get('icon').url);
-				api('site_icon_data').set(this.get('icon'));
+		destroy: function() {
+			var data = this.get( 'icon' ),
+				curr = api.SiteIconTool.currentIcon.get('icon').attachment_id;
+
+			// If the image we're removing is also the current site icon, unset
+			// the latter
+			if ( curr && data.attachment_id === curr ) {
+				api.SiteIconTool.currentIcon.trigger( 'hide' );
 			}
 
-			api.SiteIconTool.combinedList.trigger('control:setImage', this);
-		}
-	});
+			wp.ajax.post( 'site-icon-remove', {
+				nonce: _wpCustomizeSiteIcon.nonces.remove,
+				wp_customize: 'on',
+				attachment_id: data.attachment_id
+			});
+
+			this.trigger( 'destroy', this, this.collection );
+		},
+
+		save: function() {
+			if ( this.get( 'icon' ).defaultName ) {
+				api( 'site_icon' ).set( this.get('icon').url );
+				api( 'site_icon_data' ).set( this.get('icon').defaultName );
+			} else {
+				api( 'site_icon' ).set( this.get( 'icon' ).url );
+				api( 'site_icon_data' ).set( this.get( 'icon' ) );
+			}
+
+			//Commenting for now
+			api.SiteIconTool.combinedList.trigger( 'control:setImage', this );
+		},
+
+		importImage: function() {
+			var data = this.get( 'icon' );
+			if ( data.attachment_id === undefined ) {
+				return;
+			}
+
+			wp.ajax.post( 'site-icon-add', {
+				nonce: _wpCustomizeSiteIcon.nonces.add,
+				wp_customize: 'on',
+				attachment_id: data.attachment_id
+			} );
+		},
+	} );
 
 
 	/**
@@ -59,79 +92,63 @@
 		model: api.SiteIconTool.ImageModel,
 
 		// Ordered from most recently used to least
-		comparator: function(model) {
-			return -model.get('icon').timestamp;
+		comparator: function( model ) {
+			return -model.get( 'icon' ).timestamp;
 		},
 
 		initialize: function() {
-			var current = api.SiteIconTool.currentIcon.get('choice').replace(/^https?:\/\//, '');
+			var current = api.SiteIconTool.currentIcon.get( 'choice' ).replace( /^https?:\/\//, '' );
 
 			// Overridable by an extending class
-			if (!this.type) {
+			if ( ! this.type ) {
 				this.type = 'uploaded';
 			}
 
 			// Overridable by an extending class
-			if (typeof this.data === 'undefined') {
+			if ( typeof this.data === 'undefined' ) {
 				this.data = _wpCustomizeSiteIcon.uploads;
 			}
 
-			this.on('control:setImage', this.setImage, this);
-			this.on('control:removeImage', this.removeImage, this);
+			this.on( 'control:setImage', this.setImage, this );
+			this.on( 'control:removeImage', this.removeImage, this );
 
-			_.each(this.data, function(elt, index) {
-				if (!elt.attachment_id) {
+			_.each( this.data, function( elt, index ) {
+				if (! elt.attachment_id ) {
 					elt.defaultName = index;
 				}
 
-				if (typeof elt.timestamp === 'undefined') {
+				if ( typeof elt.timestamp === 'undefined' ) {
 					elt.timestamp = 0;
 				}
 
-				this.add({
+				this.add( {
 					icon: elt,
-					choice: elt.url.split('/').pop(),
-					selected: current === elt.url.replace(/^https?:\/\//, '')
-				}, { silent: true });
-			}, this);
+					choice: elt.url.split( '/' ).pop(),
+					selected: current === elt.url.replace( /^https?:\/\//, '' )
+				}, { silent: true } );
+			}, this );
 
 		},
 
 		shouldHideTitle: function() {
-			return true;
+			return this.size() < 1;
 		},
 
-		setImage: function(model) {
-			this.each(function(m) {
-				m.set('selected', false);
-			});
+		setImage: function( model ) {
+			this.each( function( m ) {
+				m.set('selected', false );
+			} );
 
-			if (model) {
-				model.set('selected', true);
+			if ( model ) {
+				model.set('selected', true );
 			}
 		},
 
 		removeImage: function() {
-			this.each(function(m) {
-				m.set('selected', false);
-			});
+			this.each( function( m ) {
+				m.set('selected', false );
+			} );
 		}
-	});
-
-
-	/**
-	 * wp.customize.SiteIconTool.DefaultsList
-	 *
-	 * @constructor
-	 * @augments wp.customize.SiteIconTool.ChoiceList
-	 * @augments Backbone.Collection
-	 */
-	api.SiteIconTool.DefaultsList = api.SiteIconTool.ChoiceList.extend({
-		initialize: function() {
-			this.type = 'default';
-			this.data = _wpCustomizeSiteIcon.defaults;
-			api.SiteIconTool.ChoiceList.prototype.initialize.apply(this);
-		}
-	});
+	} );
 
 })( jQuery, window.wp );

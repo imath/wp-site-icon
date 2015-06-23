@@ -5,35 +5,62 @@
  */
 class WP_Customize_Site_Icon_Control extends WP_Customize_Image_Control {
 	public $type = 'site-icon';
+	public $uploaded_icons;
 
 	/**
 	 * @param WP_Customize_Manager $manager
 	 */
 	public function __construct( WP_Customize_Manager $manager ) {
-		parent::__construct( $manager, 'site_icon_data', array(
+		parent::__construct( $manager, 'site_icon', array(
 			'label'    => __( 'Site Icon' ),
 			'settings' => array(
-				// 'default' => 'site_icon',
-				// 'data'    => 'site_icon_data',
+				'default' => 'site_icon',
+				'data'    => 'site_icon_data',
 			),
 			'section'  => 'site_icon',
 			'get_url'  => 'get_site_icon_url',
 		) );
-
 	}
 
 	public function enqueue() {
+		/**
+		 * Enqueue the media editor
+		 */
 		wp_enqueue_media();
-		wp_enqueue_script( 'customize-views' );
+
+		/**
+		 * Stylesheet may need to be improved
+		 */
+		wp_enqueue_style( 'site-icon-style', plugins_url( 'css/style.css', __FILE__ ), array(
+			'imgareaselect'
+		) );
+
+		/**
+		 * Enqueue the site icon model
+		 */
 		wp_enqueue_script( 'site-icon-model', plugins_url( 'js/model.js', __FILE__ ), array(
 			'customize-models',
 		) );
+
+		/**
+		 * Enqueue the site icon control
+		 */
 		wp_enqueue_script( 'site-icon-control', plugins_url( 'js/control.js', __FILE__ ), array(
 			'customize-controls', 'site-icon-model',
 		) );
 
+		/**
+		 * Enqueue the site icon views
+		 * Without wp-backbone, there's a js error
+		 */
+		wp_enqueue_script( 'site-icon-views', plugins_url( 'js/views.js', __FILE__ ), array(
+			'wp-backbone', 'site-icon-control',
+		) );
+
 		$sizes = get_site_icon_sizes();
 		$max   = end( $sizes );
+
+		$this->prepare_control();
 
 		wp_localize_script( 'customize-views', '_wpCustomizeSiteIcon', array(
 			'data' => array(
@@ -45,6 +72,8 @@ class WP_Customize_Site_Icon_Control extends WP_Customize_Image_Control {
 				'add'    => wp_create_nonce( 'icon-add' ),
 				'remove' => wp_create_nonce( 'icon-remove' ),
 			),
+			/* Get the previously uploaded site icons */
+			'uploads'  => $this->uploaded_icons
 		) );
 
 		parent::enqueue();
@@ -53,7 +82,7 @@ class WP_Customize_Site_Icon_Control extends WP_Customize_Image_Control {
 	public function print_icon_template() {
 		?>
 		<script type="text/template" id="tmpl-site-icon-choice">
-			<# if (data.type === 'uploaded') { #>
+			<# if ( data.type === 'uploaded' ) { #>
 				<div class="dashicons dashicons-no close"></div>
 			<# } #>
 
@@ -65,8 +94,8 @@ class WP_Customize_Site_Icon_Control extends WP_Customize_Image_Control {
 			</button>
 		</script>
 
-		<script type="text/template" id="tmpl-icon-current">
-			<# if (data.choice) { #>
+		<script type="text/template" id="tmpl-site-icon-current">
+			<# if ( data.choice ) { #>
 
 				<img src="{{{data.icon.thumbnail_url}}}" alt="{{{data.icon.alt_text || data.icon.description}}}" tabindex="0"/>
 
@@ -85,16 +114,22 @@ class WP_Customize_Site_Icon_Control extends WP_Customize_Image_Control {
 		<?php
 	}
 
-	public function prepare_controls() {
-
+	/**
+	 * Get the previously uploaded site icons
+	 * @uses get_uploaded_site_icons() (api.php)
+	 */
+	public function prepare_control() {
+		$this->uploaded_icons = get_uploaded_site_icons();
 	}
 
 	public function get_current_image_src() {
 		$src = $this->value();
+
 		if ( isset( $this->get_url ) ) {
-			return call_user_func( $this->get_url );
+			$src = call_user_func( $this->get_url );
 		}
-		return null;
+
+		return $src;
 	}
 
 	public function render_content() {
@@ -133,5 +168,4 @@ class WP_Customize_Site_Icon_Control extends WP_Customize_Image_Control {
 		</div>
 		<?php
 	}
-
 }

@@ -1,0 +1,87 @@
+.customize-control-site-icon .current .container {
+  overflow: hidden;
+  -webkit-border-radius: 2px;
+  border: 1px solid #eee;
+  -webkit-border-radius: 2px;
+  border-radius: 2px;
+  width:192px;
+  height:192px;
+  margin:0 auto;
+}
+
+.customize-control-site-icon .current {
+  margin-bottom: 8px;
+}
+
+.customize-control-site-icon .actions {
+  margin-bottom: 32px;
+}
+
+.customize-control-site-icon button.remove,
+.customize-control-site-icon button.new {
+  white-space: normal;
+  width: 48%;
+  height: auto;
+}
+
+.customize-control-site-icon .new {
+  float: right;
+}
+
+.customize-control-site-icon .uploaded {
+  margin-bottom: 18px;
+}
+
+.customize-control-site-icon .icon-view {
+  position: relative;
+  width: 100%;
+  margin-bottom: 5px;
+}
+
+.customize-control-site-icon .choice {
+  position: relative;
+  display: block;
+  margin-bottom: 9px;
+}
+
+.customize-control-site-icon .uploaded .icon-view .close {
+  font-size: 20px;
+  color: #fff;
+  background: #555;
+  background: rgba(0, 0, 0, 0.5);
+  position: absolute;
+  top: 10px;
+  right: -999px;
+  z-index: 1;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+}
+
+.customize-control-site-icon .icon-view:hover .close,
+.customize-control-site-icon .icon-view .close:focus {
+	right: 10px;
+}
+
+.customize-control-site-icon .uploaded button:not(.random) {
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.customize-control-site-icon .icon-view.selected:after {
+  content: '';
+  position: absolute;
+  height: auto;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  border: 4px solid #00a0d2;
+  -webkit-border-radius: 2px;
+  border-radius: 2px;
+}

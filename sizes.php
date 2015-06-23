@@ -37,27 +37,44 @@ class WP_Site_Icon_Sizes {
 		}
 	}
 
+	public function sort_sizes( $a, $b ) {
+		$a = intval( preg_replace( '/[^0-9]+/', '', $a ), 10 );
+		$b = intval( preg_replace( '/[^0-9]+/', '', $b ), 10 );
+
+		if ( $a === $b ) {
+			$r = 0;
+		} elseif ( $a > $b ) {
+			$r = 1;
+		} else {
+			$r = -1;
+		}
+
+		return $r;
+	}
+
 	public function get_all() {
+		// We need to sort the array so that the bigger dimension is at the end
+		uksort( $this->sizes, array( $this, 'sort_sizes' ) );
 		return $this->sizes;
 	}
 
 	public function display_favicon( $size, $src, WP_Post $attachment ) {
 		$mime_type = explode( '/', get_post_mime_type( $attachment ) );
 
-		$icon = sprintf( '<link rel="icon" sizes="%1$dx%1$d" href="$2%s" type="image/%3$d">',
+		$icon = sprintf( '<link rel="icon" sizes="%1$dx%1$d" href="%2$s" type="image/%3$s">',
 			absint( $size ),
-			esc_url( $src ),
+			esc_url_raw( $src ),
 			esc_attr( $mime_type[1] )
 		);
 		return $icon;
 	}
 
 	public function display_touch_icon( $size, $src, WP_Post $attachment ) {
-		$icon1x = sprintf( '<link rel="apple-touch-icon-precomposed" sizes="%1$dx%1$d" href="$2%s">',
+		$icon1x = sprintf( '<link rel="apple-touch-icon-precomposed" sizes="%1$dx%1$d" href="%2$s">',
 			absint( $size ) / 2,
 			esc_url( $src )
 		);
-		$icon2x = sprintf( '<link rel="apple-touch-icon-precomposed" sizes="%1$dx%1$d" href="$2%s">',
+		$icon2x = sprintf( '<link rel="apple-touch-icon-precomposed" sizes="%1$dx%1$d" href="%2$s">',
 			absint( $size ),
 			esc_url( $src )
 		);

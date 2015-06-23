@@ -28,11 +28,16 @@ class WP_Site_Icon {
 		require_once dirname( __FILE__ ) . '/sizes.php';
 		require_once dirname( __FILE__ ) . '/api.php';
 
-		add_action( 'customize_register',     array( $this, 'action_customize_register' ) );
-		add_action( 'admin_bar_menu',         array( $this, 'action_admin_bar_menu' ) );
-		add_action( 'wp_head',                array( $this, 'action_wp_head' ), 999 );
-		add_action( 'wp_ajax_site-icon-crop', array( $this, 'ajax_icon_crop' ) );
+		add_action( 'customize_register',       array( $this, 'action_customize_register' )      );
+		add_action( 'admin_bar_menu',           array( $this, 'action_admin_bar_menu'     ), 100 );
+		add_action( 'admin_menu',               array( $this, 'action_admin_menu'         )      );
+		add_action( 'wp_head',                  array( $this, 'action_wp_head'            ), 999 );
+		add_action( 'wp_ajax_site-icon-crop',   array( $this, 'ajax_icon_crop'            )      );
+		add_action( 'wp_ajax_site-icon-add',    array( $this, 'ajax_icon_add'             )      );
+		add_action( 'wp_ajax_site-icon-remove', array( $this, 'ajax_icon_remove'          )      );
 
+		// @todo:  when an attachment is deleted, the site icon options should also be deleted if it
+		// was the one used for the feature. For now an extra check is added into WP_Site_Icon->action_wp_head()
 	}
 
 	public function action_customize_register( WP_Customize_Manager $wp_customize ) {
@@ -45,13 +50,26 @@ class WP_Site_Icon {
 			'priority'    => 60,
 		) );
 
+		/**
+		 * Adding two settings to mimic the custom header feature
+		 *
+		 * This is done to avoid too much changes to "copied" custom header js files. Unfortunately, i think
+		 * it explains there is two controls instead of one (the second control is hidden though, but selected
+		 * icons in the combined list are set on the hidden control).
+		 */
+		$wp_customize->add_setting( 'site_icon', array(
+			'type'       => 'option',
+			'default'    => '',
+            'capability' => 'manage_options'
+		) );
+
 		$wp_customize->add_setting( 'site_icon_data', array(
-			'type'    => 'option',
-			'default' => array(),
+			'type'       => 'option',
+			'default'    => '',
+            'capability'  => 'manage_options',
 		) );
 
 		$wp_customize->add_control( new WP_Customize_Site_Icon_Control( $wp_customize ) );
-
 	}
 
 	/**
@@ -80,6 +98,27 @@ class WP_Site_Icon {
 
 	}
 
+	/**
+	 * Adds a Site Icon sub-menu to Appearance admin menu.
+	 */
+	public function action_admin_menu() {
+		$current_url   = ( is_ssl() ? 'https://' : 'http://' ) . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+		$customize_url = add_query_arg( array(
+			'url' => urlencode( $current_url ),
+			urlencode( 'autofocus[control]' ) => 'site_icon',
+		), basename( wp_customize_url() ) );
+
+		$page = add_theme_page(
+			__( 'Site Icon' ),
+			__( 'Site Icon' ),
+			'edit_theme_options',
+			$customize_url
+		);
+	}
+
+	/**
+	 * Add icons into the <head> tag
+	 */
 	public function action_wp_head() {
 
 		$icon_data = get_site_icon_data();
@@ -88,24 +127,34 @@ class WP_Site_Icon {
 			return;
 		}
 
-		foreach ( get_site_icon_sizes() as $icon ) {
+		foreach ( get_site_icon_sizes() as $id => $icon ) {
 
-			if ( isset( $icon_data[ $icon['size'] ] ) ) {
-				$attachment = get_post( $icon_data[ $icon['size'] ] );
-				list( $src, $width, $height ) = wp_get_attachment_image_src( $attachment->ID, 'full' );
+			if ( isset( $icon_data['attachment_id'] ) ) {
+				$attachment = get_post( $icon_data['attachment_id'] );
+
+				// Make sure the attachment has not been deleted
+				if ( ! empty( $attachment ) ) {
+					list( $src, $width, $height ) = wp_get_attachment_image_src( $attachment->ID, $id );
+					echo call_user_func( $icon['display_callback'], $icon['size'], $src, $attachment );
+				}
 			} else {
 				// @TODO find closest size and use as a fallback:
 				continue;
 			}
-
-			echo call_user_func( $icon['display_callback'], $icon['size'], $src, $attachment );
 		}
 
 	}
 
 	/**
-	 * Gets attachment uploaded by Media Manager, crops each size, then saves each as a
-	 * new attachment. Returns JSON-encoded array of object details.
+	 * Gets attachment uploaded by Media Manager, crops the biggest size, then saves it as a
+	 * new attachment. Returns JSON-encoded object.
+	 *
+	 * NB: to work, it requires WordPress core "Cropper" to be adapted so that it's possible
+	 * to set a different ajax action than 'custom-header-crop'
+	 * @see  core ticket
+	 *
+	 * Each icon size will be added as metadatas of the newly created attachment
+	 * @see WP_Site_Icon->insert_attachment
 	 */
 	public function ajax_icon_crop() {
 		check_ajax_referer( 'image_editor-' . $_POST['id'], 'nonce' );
@@ -126,44 +175,42 @@ class WP_Site_Icon {
 		}
 
 		$objects = array();
-		$meta    = wp_get_attachment_metadata( $attachment_id );
+		$sizes = get_site_icon_sizes();
+		$max   = end( $sizes );
 
-		foreach ( get_site_icon_sizes() as $id => $args ) {
+		// I don't think creating an attachment for each size is needed
+		$cropped = wp_crop_image(
+			$attachment_id,
+			(int) $crop_details['x1'],
+			(int) $crop_details['y1'],
+			(int) $crop_details['width'],
+			(int) $crop_details['height'],
+			(int) $max['size'],
+			(int) $max['size']
+		);
 
-			$cropped = wp_crop_image(
-				$attachment_id,
-				(int) $crop_details['x1'],
-				(int) $crop_details['y1'],
-				(int) $crop_details['width'],
-				(int) $crop_details['height'],
-				(int) $args['size'],
-				(int) $args['size']
-			);
-
-			if ( ! $cropped || is_wp_error( $cropped ) ) {
-				wp_send_json_error( array(
-					'message' => __( 'Image could not be processed. Please go back and try again.' ),
-				) );
-			}
-
-			/** This filter is documented in wp-admin/custom-header.php */
-			$cropped = apply_filters( 'wp_create_file_in_uploads', $cropped, $attachment_id ); // For replication
-
-			$object = $this->create_attachment_object( $cropped, $attachment_id );
-
-			unset( $object['ID'] );
-
-			$new_attachment_id = $this->insert_attachment( $object, $cropped );
-
-			$object['attachment_id'] = $new_attachment_id;
-			$object['width']         = $dimensions['dst_width'];
-			$object['height']        = $dimensions['dst_height'];
-
-			$objects[] = $object;
-
+		if ( ! $cropped || is_wp_error( $cropped ) ) {
+			wp_send_json_error( array(
+				'message' => __( 'Image could not be processed. Please go back and try again.' ),
+			) );
 		}
 
-		wp_send_json_success( $objects );
+		/** This filter is documented in wp-admin/custom-header.php */
+		$cropped = apply_filters( 'wp_create_file_in_uploads', $cropped, $attachment_id ); // For replication
+
+		$object = $this->create_attachment_object( $cropped, $attachment_id );
+
+		unset( $object['ID'] );
+
+		// Instead of creating as many attachments as icon sizes, i suggest to
+		// create as many "attachment sizes" (in metadatas) as icon sizes
+		$new_attachment_id = $this->insert_attachment( $object, $cropped, $sizes );
+
+		$object['attachment_id'] = $new_attachment_id;
+		$object['width']         = $max['size'];
+		$object['height']        = $max['size'];
+
+		wp_send_json_success( $object );
 	}
 
 	/**
@@ -187,6 +234,7 @@ class WP_Site_Icon {
 			'post_content'   => $url,
 			'post_mime_type' => $mime_type,
 			'guid'           => $url,
+			/* context is useful to query the previously updated site icons */
 			'context'        => 'site-icon',
 		);
 
@@ -198,14 +246,68 @@ class WP_Site_Icon {
 	 *
 	 * @param array  $object  Attachment object.
 	 * @param string $cropped Cropped image URL.
+	 * @param array  $sizes   The icon sizes
 	 *
 	 * @return int Attachment ID.
 	 */
-	final public function insert_attachment( $object, $cropped ) {
+	final public function insert_attachment( $object, $cropped, $sizes ) {
 		$attachment_id = wp_insert_attachment( $object, $cropped );
-		$metadata      = wp_generate_attachment_metadata( $attachment_id, $cropped );
-		wp_update_attachment_metadata( $attachment_id, $metadata );
+
+		// Add all image sizes for the site icon as attachment's metadata
+		foreach ( $sizes as $id => $size ) {
+			add_image_size( $id, $size['size'], $size['size'], true );
+		}
+
+		wp_update_attachment_metadata( $attachment_id, wp_generate_attachment_metadata( $attachment_id, $cropped ) );
+
+		// Remove image sizes so no other attachments will be affected
+		foreach ( $sizes as $id => $size ) {
+			remove_image_size( $id );
+		}
+
 		return $attachment_id;
+	}
+
+	/**
+	 * Adds a timestamp metadata to the site icon once it has been chosen
+	 * into the customizer
+	 */
+	public function ajax_icon_add() {
+		check_ajax_referer( 'icon-add', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error();
+		}
+
+		$attachment_id = absint( $_POST['attachment_id'] );
+		if ( $attachment_id < 1 ) {
+			wp_send_json_error();
+		}
+
+		update_post_meta( $attachment_id, '_wp_attachment_site_icon_last_used', time() );
+
+		wp_send_json_success();
+	}
+
+	/**
+	 * Only remove 'site icons' specific metadas to the attachment
+	 */
+	public function ajax_icon_remove() {
+		check_ajax_referer( 'icon-remove', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error();
+		}
+
+		$attachment_id = absint( $_POST['attachment_id'] );
+		if ( $attachment_id < 1 ) {
+			wp_send_json_error();
+		}
+
+		delete_post_meta( $attachment_id, '_wp_attachment_context' );
+		delete_post_meta( $attachment_id, '_wp_attachment_site_icon_last_used' );
+
+		wp_send_json_success();
 	}
 
 	/**
