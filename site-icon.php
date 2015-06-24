@@ -2,7 +2,7 @@
 /*
 Plugin Name: Site Icon
 Description: An admin UI for setting a site icon used for favicons and touch icons.
-Version:     1.0.0
+Version:     1.0.1
 Plugin URI:  https://github.com/johnbillion/wp-site-icon
 Author:      John Blackbourn
 
@@ -148,10 +148,6 @@ class WP_Site_Icon {
 	/**
 	 * Gets attachment uploaded by Media Manager, crops the biggest size, then saves it as a
 	 * new attachment. Returns JSON-encoded object.
-	 *
-	 * NB: to work, it requires WordPress core "Cropper" to be adapted so that it's possible
-	 * to set a different ajax action than 'custom-header-crop'
-	 * @see  core ticket https://core.trac.wordpress.org/ticket/32765
 	 *
 	 * Each icon size will be added as metadatas of the newly created attachment
 	 * @see WP_Site_Icon->insert_attachment

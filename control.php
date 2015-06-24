@@ -54,7 +54,7 @@ class WP_Customize_Site_Icon_Control extends WP_Customize_Image_Control {
 		 * Without wp-backbone, there's a js error
 		 */
 		wp_enqueue_script( 'site-icon-views', plugins_url( 'js/views.js', __FILE__ ), array(
-			'wp-backbone', 'site-icon-control',
+			'wp-backbone', 'site-icon-control', 'media-views',
 		) );
 
 		$sizes = get_site_icon_sizes();

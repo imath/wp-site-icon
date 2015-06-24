@@ -81,15 +81,6 @@
 
 			controller.set( 'canSkipCrop', false );
 
-			/**
-			 * The Ajax action
-			 * @see  WP_Site_Icon->ajax_icon_crop
-			 *
-			 * This requires the wp-includes/js/media-view.js to be edited
-			 * @see core ticket: https://core.trac.wordpress.org/ticket/32765
-			 */
-			controller.set( 'cropAction', 'site-icon-crop' );
-
 			return {
 				handles     : true,
 				keys        : true,
@@ -133,7 +124,7 @@
 						suggestedWidth: _wpCustomizeSiteIcon.data.width,
 						suggestedHeight: _wpCustomizeSiteIcon.data.height
 					} ),
-					new wp.media.controller.Cropper( {
+					new wp.media.controller.siteIconCropper( {
 						imgSelectOptions: this.calculateImageSelectOptions
 					} )
 				]

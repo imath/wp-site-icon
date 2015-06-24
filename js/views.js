@@ -3,6 +3,19 @@
 	if ( ! wp || ! wp.customize ) { return; }
 	var api = wp.customize;
 
+	/**
+	 * Extends the doCrop function to use a custom ajax action
+	 */
+	wp.media.controller.siteIconCropper = wp.media.controller.Cropper.extend( {
+		doCrop: function( attachment ) {
+			return wp.ajax.post( 'site-icon-crop', {
+				nonce: attachment.get( 'nonces' ).edit,
+				id: attachment.get( 'id' ),
+				cropDetails: attachment.get( 'cropDetails' )
+			} );
+		}
+	} );
+
 
 	/**
 	 * wp.customize.SiteIconTool.CurrentView
